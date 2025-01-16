@@ -11,11 +11,13 @@ import androidx.navigation.NavArgument
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.navArgument
+import com.example.footballstadiumexplorer.ui.theme.FavoritesScreen
 
 
 object Routes {
     const val SCREEN_ALL_STADIUMS = "stadiumsList"
     const val SCREEN_STADIUM_DETAILS = "stadiumDetails/{stadiumId}"
+    const val FAVORITE_STADIUMS_SCREEN = "FavoriteStadiums"
     fun getStadiumDetailsPath(stadiumId: Int?) : String {
         if (stadiumId != null && stadiumId != -1) {
             return "stadiumDetails/$stadiumId"
@@ -41,6 +43,9 @@ fun NavigationController(navController: NavHostController) {
         ) {backStackEntry ->
             val stadiumId = backStackEntry.arguments?.getInt("stadiumId") ?: 0
             StadiumDetailsScreen(navigation = navController, stadiumId = stadiumId)
+        }
+        composable(Routes.FAVORITE_STADIUMS_SCREEN) {
+            FavoritesScreen("FavoritesScreen",navigation = navController)
         }
     }
 }
