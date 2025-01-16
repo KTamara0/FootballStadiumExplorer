@@ -400,7 +400,7 @@ val stadiums: List<Stadium> = listOf(
                 "final for the 2009/10 season. The finals of the 1964 European Football Championship and the World Cup were also held at this stadium. In 2007, the 1000th jubilee match was " +
                 "played at the Santiago Bernabeu. UEFA declared the Santiago Bernabeu an elite European stadium after the Champions League match against Olympiacos was played on October 27. " +
                 "A month after that, the stadium celebrated the 60th anniversary of its presentation in 1947.",
-        review = listOf(Review(user = "Leo", text = "Camp Nou is an impressive stadium with a rich history and a great atmosphere.")),
+        review = listOf(Review(user = "Leo", text = "Santiago Bernabeu is an impressive stadium with a rich history and a great atmosphere.")),
         isFavorited = false
     )
 )
