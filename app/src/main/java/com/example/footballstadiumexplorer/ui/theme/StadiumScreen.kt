@@ -1,5 +1,6 @@
 package com.example.footballstadiumexplorer.ui.theme
 
+import android.graphics.Paint.Align
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -49,12 +50,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -704,7 +707,7 @@ fun StadiumDetailsScreen(
 @Composable
 fun FavoritesScreen(currentScreen: String, navigation: NavController) {
     var currentActiveButton by remember {
-        mutableStateOf(if(currentScreen == "FavoritesScreen") 0 else 1)
+        mutableStateOf(if(currentScreen == "FavoritesScreen") 1 else 0)
     }
     Box(
         modifier = Modifier.fillMaxSize()
@@ -760,7 +763,8 @@ fun FavoritesScreen(currentScreen: String, navigation: NavController) {
         // Ostali sadržaj ekrana, kao što je popis omiljenih stadiona
         LazyColumn(
             modifier = Modifier
-                .padding(240.dp),
+                .padding(16.dp)
+                .padding(top = 170.dp, bottom = 15.dp),
             contentPadding = PaddingValues(top = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -819,7 +823,7 @@ fun FavoriteStadiumItem(stadium: Stadium, navigation: NavController) {
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart) // Pozicioniranje u donji lijevi kut
-                .padding(12.dp)
+                .padding(10.dp)
                 .background(
                     color = Color.Black.copy(alpha = 0.6f), // Poluprozirna pozadina
                     shape = RoundedCornerShape(4.dp)
@@ -844,22 +848,21 @@ fun FavoriteStadiumItem(stadium: Stadium, navigation: NavController) {
 fun FavoritesScreenTitle(
     title: String,
 ) {
-    Column(
-        modifier = Modifier
-            .padding(top = 50.dp)
+    Column(modifier = Modifier
+            .padding(top = 58.dp)
             .fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+        horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = title,
             style = TextStyle(
-                color = Indigo900,
+                color = LightBlue300,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily(Font(R.font.merienda_regular))
+                fontFamily = FontFamily(Font(R.font.merienda_regular)),
+                textAlign = TextAlign.Center
             ),
             modifier = Modifier
-                .padding(bottom = 8.dp, top = 4.dp),
+                .padding(bottom = 8.dp, top = 8.dp)
         )
     }
 }
