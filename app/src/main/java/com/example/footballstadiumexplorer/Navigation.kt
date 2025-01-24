@@ -1,6 +1,7 @@
 package com.example.footballstadiumexplorer
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.dimensionResource
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -11,16 +12,27 @@ import androidx.navigation.NavArgument
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.navArgument
+import com.example.footballstadiumexplorer.ui.theme.AddReviewScreen
 import com.example.footballstadiumexplorer.ui.theme.FavoritesScreen
+import com.example.footballstadiumexplorer.ui.theme.Review
+import com.example.footballstadiumexplorer.ui.theme.stadiums
 
 
 object Routes {
     const val SCREEN_ALL_STADIUMS = "stadiumsList"
     const val SCREEN_STADIUM_DETAILS = "stadiumDetails/{stadiumId}"
     const val FAVORITE_STADIUMS_SCREEN = "FavoriteStadiums"
+    const val ADD_REVIEW_SCREEN = "AddReview/{stadiumId}"
     fun getStadiumDetailsPath(stadiumId: Int?) : String {
         if (stadiumId != null && stadiumId != -1) {
             return "stadiumDetails/$stadiumId"
+        }
+        return "stadiumDetails/0"
+    }
+
+    fun getAddReviewPath(stadiumId: Int): String {
+        if(stadiumId != null && stadiumId != -1) {
+            return "AddReview/$stadiumId" // Generiranje URL-a za stranicu za unos recenzije
         }
         return "stadiumDetails/0"
     }
@@ -46,6 +58,21 @@ fun NavigationController(navController: NavHostController) {
         }
         composable(Routes.FAVORITE_STADIUMS_SCREEN) {
             FavoritesScreen("FavoritesScreen",navigation = navController)
+        }
+
+        composable(
+            Routes.ADD_REVIEW_SCREEN,
+            arguments = listOf(navArgument("stadiumId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val stadiumId = backStackEntry.arguments?.getInt("stadiumId") ?: 0
+                AddReviewScreen(
+                    navigation = navController,
+                    stadiumId = stadiumId,
+                    onReviewAdded ={ review ->
+                        // Dodaj recenziju za stadion
+                        stadiums[stadiumId].reviews.add(review)
+                    }
+                )
         }
     }
 }

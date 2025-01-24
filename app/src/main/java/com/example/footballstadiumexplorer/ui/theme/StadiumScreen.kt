@@ -64,10 +64,25 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.example.footballstadiumexplorer.R
 import com.example.footballstadiumexplorer.Routes
+import com.example.footballstadiumexplorer.Routes.getAddReviewPath
 
 
 @Composable
 fun FootballStadiumScreen(navigation: NavController) {
+    var searchInput by remember { mutableStateOf("") }
+    var currentActiveButton by remember { mutableStateOf(0) }
+
+    val filteredByName = stadiums.filter {
+        it.name.contains(searchInput, ignoreCase = true )
+    }
+
+    val filteredStadiums = when (currentActiveButton) {
+        0 -> filteredByName // All - Prikazuje sve stadione
+        1 -> filteredByName.filter { it.location.any { location -> location.state == "Spain" } } // Španjolska
+        2 -> filteredByName.filter { it.location.any { location -> location.state == "Germany" } } // Njemačka
+        else -> filteredByName
+    }
+
     Column(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -77,22 +92,28 @@ fun FootballStadiumScreen(navigation: NavController) {
     ) {
         ScreenTitle(title = "Football Stadium Explorer", subtitle = "\"From dreams to destinations: explore iconic stadiums.\"")
         FavoritesButton(currentScreen="FootballScreen", navigation)
-        SearchBar(iconResource = R.drawable.ic_search, labelText = "Search")
-        StadiumCategories()
+        SearchBar(iconResource = R.drawable.ic_search,
+            labelText = "Search by stadium name",
+            onValueChange = { newInput -> searchInput = newInput })
+        StadiumCategories(currentActiveButton = currentActiveButton,
+            onCategorySelect = { selectedCategory ->
+            currentActiveButton = selectedCategory
+        })
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp)
         ) {
-            items(stadiums.size) { index ->
+            items(filteredStadiums) { stadium ->
                 StadiumCard(
-                    imageResource = stadiums[index].image,
-                    title = stadiums[index].name,
+                    imageResource = stadium.image,
+                    title = stadium.name,
                     subtitle =
-                        stadiums[index].location.joinToString(", ") { "${it.city}, ${it.state}" },
+                        stadium.location.joinToString(", ") { "${it.city}, ${it.state}" },
                     function = {
+                        val stadiumIndex = stadiums.indexOf(stadium)
                         navigation.navigate(
-                            Routes.getStadiumDetailsPath(stadiumId =index)
+                            Routes.getStadiumDetailsPath(stadiumId = stadiumIndex)
                         )
                     }
 
@@ -101,8 +122,6 @@ fun FootballStadiumScreen(navigation: NavController) {
             }
         }
 
-        // Ovdje ne pozivaj StadiumDetailsScreen direktno, nego koristi navigaciju!
-        // StadiumDetailsScreen(navigation, stadiumId=0) -> OVO TREBA UKLONITI!
         IconButtonSpecifier()
     }
 }
@@ -124,7 +143,8 @@ fun ScreenTitle(
                 color = Indigo900,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily(Font(R.font.merienda_regular))
+                fontFamily = FontFamily(Font(R.font.merienda_regular)),
+                textAlign = TextAlign.Center
             ),
             modifier = Modifier
                 .padding(bottom = 8.dp, top = 4.dp),
@@ -133,7 +153,8 @@ fun ScreenTitle(
             text = subtitle,
             style = TextStyle(color = Color.Black, fontSize = 15.sp,
                 fontStyle = FontStyle.Italic),
-            modifier = Modifier.padding(top = 8.dp, bottom = 10.dp)
+            modifier = Modifier.padding(top = 8.dp, bottom = 10.dp),
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -151,14 +172,18 @@ fun SearchBar(
         focusedLabelColor = Indigo900, //Search dok pisem pretrazivanje
         focusedIndicatorColor = Color.Transparent, //linija ispod search, preklapa se s donjim borderom
         unfocusedIndicatorColor = Color.Transparent, //isto ta linija
-    )
+    ),
+    onValueChange: (String) -> Unit
 ) {
     var searchInput by remember {
         mutableStateOf("")
     }
     TextField(
         value = searchInput,
-        onValueChange = { searchInput = it },
+        onValueChange = {
+            searchInput = it
+            onValueChange(it)  // Pozovi onValueChange kad se input promijeni
+        },
         label = {
             Text(labelText,
                 fontSize = 18.sp)
@@ -190,10 +215,13 @@ fun TabButton(
     Button(
         shape = RoundedCornerShape(12.dp),
         elevation = null,
-        colors = if (isActive) ButtonDefaults.buttonColors(contentColor =
-        Color.White, containerColor = Indigo900) else
-            ButtonDefaults.buttonColors(contentColor = Indigo900, containerColor =
-            Color.White),
+        colors = if (isActive) ButtonDefaults.buttonColors(
+            contentColor = Color.White,
+            containerColor = Indigo900)
+        else
+            ButtonDefaults.buttonColors(
+                contentColor = Indigo900,
+                containerColor = Color.White),
         modifier = Modifier.fillMaxHeight(),
         onClick = { onClick() }
     ) {
@@ -231,10 +259,9 @@ fun FavoritesButton(currentScreen: String,
 }
 
 @Composable
-fun StadiumCategories() {
-    var currentActiveButton by remember {
-        mutableStateOf(0)
-    }
+fun StadiumCategories(currentActiveButton: Int,
+                      onCategorySelect: (Int) -> Unit)
+{
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
@@ -245,17 +272,17 @@ fun StadiumCategories() {
             .height(44.dp),
     ) {
         TabButton(text = "All", isActive = currentActiveButton == 0) {
-            currentActiveButton = 0
+            onCategorySelect(0)
         }
         Spacer(modifier = Modifier.width(6.dp))
         Spacer(modifier = Modifier.height(10.dp))
         TabButton(text = "Spain", isActive = currentActiveButton == 1) {
-            currentActiveButton = 1
+            onCategorySelect(1)
         }
         Spacer(modifier = Modifier.width(6.dp))
         Spacer(modifier = Modifier.height(10.dp))
         TabButton(text = "Germany", isActive = currentActiveButton == 2) {
-            currentActiveButton = 2
+            onCategorySelect(2)
         }
     }
 }
@@ -306,12 +333,13 @@ fun IconButtonSpecifier() {
 
 data class Stadium(
     @DrawableRes val image: Int = 0,
+    var stadiumId: Int,
     var name: String = "",
     var location: List<Location> = listOf(),
     var capacity: Number,
     var year: Number,
     var description: String = "",
-    var review: List<Review> = listOf(),
+    var reviews: MutableList<Review> = mutableListOf(),
     var isFavorited: Boolean,
     var isVisited: Boolean
 )
@@ -329,6 +357,7 @@ data class Review(
 val stadiums: List<Stadium> = listOf(
     Stadium(
         image = R.drawable.allianzarenabm,
+        stadiumId = 1,
         name = "Allianz Arena",
         location = listOf(Location(city="Munich", state="Germany")),
         capacity = 69901,
@@ -338,12 +367,13 @@ val stadiums: List<Stadium> = listOf(
                 "When the Champions League matches are played, the stadium is called Munich Arena, and during the World Cup, " +
                 "the stadium was called FIFA WM-Stadion München, due to the FIFA ban on stadiums using the names of sponsors. " +
                 "FC Bayern, German national football team and Audi Cup matches are played at the stadium.",
-        review = listOf(Review(user="Karlo", text="One of the most beautiful stadiums I have visited.")),
+        reviews = mutableListOf(Review(user="Karlo", text="One of the most beautiful stadiums I have visited.")),
         isFavorited = false,
         isVisited = false
     ),
     Stadium(
         image = R.drawable.timsaharena,
+        stadiumId = 2,
         name = "Timsah Arena",
         location = listOf(Location(city = "Bursa", state="Turkey")),
         capacity = 43877,
@@ -353,12 +383,13 @@ val stadiums: List<Stadium> = listOf(
                 "The stadium has 70 apartments and 84 entrances. Capacity for 207 disabled spectators is also provided. " +
                 "The parking lot has a capacity for 1,551 vehicles and 256 buses. " +
                 "The exterior of the stadium is designed to be in the shape of the body and head of a crocodile.",
-        review = listOf(Review(user="Marko", text="Beautiful stadium!")),
+        reviews = mutableListOf(Review(user="Marko", text="Beautiful stadium!")),
         isFavorited = false,
         isVisited = false
     ),
     Stadium(
         image = R.drawable.acmilan,
+        stadiumId = 3,
         name = "San Siro Stadium",
         location = listOf(Location(city="Milan", state = "Italy")),
         capacity = 75817,
@@ -370,12 +401,13 @@ val stadiums: List<Stadium> = listOf(
                 "only Milan played in the stadium, and since 1947 it has been shared with Inter. The Italian national football team sometimes plays matches " +
                 "at the stadium, and the finals of the Champions League and the finals of the UEFA Cup have also been played. The stadium was renovated in 1989 " +
                 "for the needs of the 1990 World Cup.",
-        review = listOf(Review(user = "Alex", text= "Amazing stadium. I am impressed.")),
+        reviews = mutableListOf(Review(user = "Alex", text= "Amazing stadium. I am impressed.")),
         isFavorited = false,
         isVisited = false
     ),
     Stadium(
         image = R.drawable.bvbstadium,
+        stadiumId = 4,
         name = "Signal Iduna Park",
         location = listOf(Location(city = "Dortmund", state="Germany")),
         capacity = 81365,
@@ -385,12 +417,13 @@ val stadiums: List<Stadium> = listOf(
                 "(in international matches) and even 80,552 when standing is allowed. It is Germany's largest stadium, the sixth-largest in Europe, and the third-largest home to " +
                 "a top-flight European club after Camp Nou and Santiago Bernabéu Stadium. It holds the European record for average fan attendance, set in the 2011–12 season with " +
                 "almost 1.37 million spectators over 17 games at an average of 80,588 per game.",
-        review = listOf(Review(user = "Luka", text = "It is a wonderful experience to attend a match at a stadium like this.")),
+        reviews = mutableListOf(Review(user = "Luka", text = "It is a wonderful experience to attend a match at a stadium like this.")),
         isFavorited = false,
         isVisited = false
     ),
     Stadium(
         image = R.drawable.campnou,
+        stadiumId = 5,
         name = "Camp Nou",
         location = listOf(Location(city = "Barcelona", state = "Spain")),
         capacity = 99354,
@@ -400,12 +433,13 @@ val stadiums: List<Stadium> = listOf(
                 "recognised the services and facilities at Camp Nou by awarding it five star status. In 2010, in line with the new UEFA regulations, this category was replaced by " +
                 "the new 'Category 4' title which corresponds to the stadiums which fulfill the most demanding requirements with regards to facilities, services and capacity such as " +
                 "FC Barcelona's ground.",
-        review = listOf(Review(user = "Emanuel", text = "Camp Nou is an incredible experience – the atmosphere, history and size of the stadium are unrepeatable!")),
+        reviews = mutableListOf(Review(user = "Emanuel", text = "Camp Nou is an incredible experience – the atmosphere, history and size of the stadium are unrepeatable!")),
         isFavorited = false,
         isVisited = false
     ),
     Stadium(
         image = R.drawable.santiagobernabeu,
+        stadiumId = 6,
         name = "Santiago Bernabeu",
         location = listOf(Location(city = "Madrid", state = "Spain")),
         capacity = 78297,
@@ -415,7 +449,7 @@ val stadiums: List<Stadium> = listOf(
                 "final for the 2009/10 season. The finals of the 1964 European Football Championship and the World Cup were also held at this stadium. In 2007, the 1000th jubilee match was " +
                 "played at the Santiago Bernabeu. UEFA declared the Santiago Bernabeu an elite European stadium after the Champions League match against Olympiacos was played on October 27. " +
                 "A month after that, the stadium celebrated the 60th anniversary of its presentation in 1947.",
-        review = listOf(Review(user = "Leo", text = "Santiago Bernabeu is an impressive stadium with a rich history and a great atmosphere.")),
+        reviews = mutableListOf(Review(user = "Leo", text = "Santiago Bernabeu is an impressive stadium with a rich history and a great atmosphere.")),
         isFavorited = false,
         isVisited = false
     )
@@ -449,8 +483,20 @@ fun StadiumCard(
                 .padding(horizontal = 10.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.Bottom
         ) {
-            Text(title, color = Blue300, style = TextStyle(fontWeight = FontWeight.Bold))
-            Text(subtitle, color = Blue300, style = TextStyle(fontWeight = FontWeight.Bold))
+            // Dodavanje prozirne pozadine za tekst
+            Box(
+                modifier = Modifier
+                    .background(
+                        color = Color.Black.copy(alpha = 0.6f),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    .padding(8.dp) // Unutarnji razmak unutar pozadine
+            ){
+                Column {
+                    Text(title, color = Blue300, style = TextStyle(fontWeight = FontWeight.Bold))
+                    Text(subtitle, color = Blue300, style = TextStyle(fontWeight = FontWeight.Bold))
+                }
+            }
         }
     }
 }
@@ -607,7 +653,7 @@ fun Description(
 }
 
 @Composable
-fun Reviews(stadium: Stadium) {
+fun Reviews(reviews: List<Review>) {
     Row(
         horizontalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier
@@ -619,25 +665,31 @@ fun Reviews(stadium: Stadium) {
             Text(text = "Reviews", style = TextStyle(fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 fontStyle = FontStyle.Italic))
-
-            stadium.review.forEach { review ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(vertical = 4.dp) // Razmak između recenzija
-                ) {
-                    // Korisničko ime (bold, crna boja)
-                    Text(
-                        text = "${review.user}: ",
-                        style = TextStyle(
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
+            if (reviews.isEmpty()) {
+                Text(
+                    text = "No reviews yet",
+                    style = TextStyle(color = Color.Gray)
+                )
+            } else {
+                reviews.forEach { review ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(vertical = 4.dp) // Razmak između recenzija
+                    ) {
+                        // Korisničko ime (bold, crna boja)
+                        Text(
+                            text = "${review.user}: ",
+                            style = TextStyle(
+                                fontWeight = FontWeight.Bold,
+                                color = Color.Black
+                            )
                         )
-                    )
-                    // Tekst recenzije (siva boja)
-                    Text(
-                        text = review.text,
-                        style = TextStyle(color = Color.DarkGray)
-                    )
+                        // Tekst recenzije (siva boja)
+                        Text(
+                            text = review.text,
+                            style = TextStyle(color = Color.DarkGray)
+                        )
+                    }
                 }
             }
         }
@@ -645,9 +697,9 @@ fun Reviews(stadium: Stadium) {
 }
 
 @Composable
-fun NewReviewButton() {
+fun NewReviewButton(navigation: NavController, stadiumId: Int){
     Button(
-        onClick = { /*TODO*/ },
+        onClick = { navigation.navigate("AddReview/$stadiumId") },
         elevation = null,
         colors = ButtonDefaults.buttonColors(
             containerColor = Indigo900,
@@ -657,8 +709,8 @@ fun NewReviewButton() {
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        Text(text = "Add new review", modifier =
-        Modifier.padding(8.dp))
+        Text(text = "Add new review",
+            modifier = Modifier.padding(8.dp))
     }
 }
 
@@ -672,6 +724,11 @@ fun StadiumDetailsScreen(
 ) {
     val stadium = stadiums[stadiumId]
     val scrollState = rememberLazyListState()
+
+    val onReviewAdded: (Review) -> Unit = { newReview ->
+        stadium.reviews.add(newReview) // Dodajte novu recenziju stadiona
+    }
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -694,8 +751,8 @@ fun StadiumDetailsScreen(
                 ScreenInfo(stadium.image, stadium.name, stadium.location)
                 BasicInfo(stadium)
                 Description(stadium)
-                NewReviewButton()
-                Reviews(stadium)
+                NewReviewButton(navigation = navigation, stadiumId = stadiumId)
+                Reviews(stadium.reviews)
             }
         }
     }
@@ -737,7 +794,7 @@ fun FavoritesScreen(currentScreen: String, navigation: NavController) {
                 TabButton(text = "Explorer", isActive = currentActiveButton == 0
                 ){
                     if(currentScreen != "FootballScreen")
-                    currentActiveButton = 0
+                        currentActiveButton = 0
                     navigation.navigate((Routes.SCREEN_ALL_STADIUMS))
                 }
                 Spacer(modifier = Modifier.width(6.dp))
@@ -869,71 +926,6 @@ fun FavoritesScreenTitle(
 
 
 @Composable
-fun FavoriteStadiums(
-    @DrawableRes coverImage: Int,
-    navigation: NavController,
-    stadium: Stadium
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
-        Column(
-            verticalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxHeight()
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .height(56.dp)
-                    .padding(horizontal = 16.dp)
-            ) {
-                CircularButton(
-                    R.drawable.ic_arrow_back,
-                    onClick = { navigation.navigate(Routes.SCREEN_ALL_STADIUMS) })
-            }
-        }
-    }
-}
-
-
-@Composable
-fun SwitchButton(currentScreen: String,
-                    navigation: NavController){
-    var currentActiveButton by remember {
-        mutableStateOf(if(currentScreen == "FootballScreen") 0 else 1)
-    }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center,
-        modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 16.dp)
-            .background(Color.Transparent)
-            .fillMaxWidth()
-            .height(44.dp),
-    ) {
-        TabButton(text = "Explorer", isActive = currentActiveButton == 0
-        ){
-            if(currentScreen != "stadiumsList")
-            currentActiveButton = 0
-            navigation.navigate((Routes.SCREEN_ALL_STADIUMS))
-        }
-        Spacer(modifier = Modifier.width(6.dp))
-        TabButton(text = "Favorites", isActive = currentActiveButton == 1){
-            if(currentScreen != "FavoriteStadiums")
-                currentActiveButton = 1
-            navigation.navigate(Routes.FAVORITE_STADIUMS_SCREEN)
-        }
-    }
-}
-
-
-
-@Composable
 fun FavoritesDetailsScreen(
     navigation: NavController,
     stadiumId: Int
@@ -962,13 +954,75 @@ fun FavoritesDetailsScreen(
                 ScreenInfo(stadium.image, stadium.name, stadium.location)
                 BasicInfo(stadium)
                 Description(stadium)
-                NewReviewButton()
-                Reviews(stadium)
+                NewReviewButton(navigation, stadiumId)
+                Reviews(stadium.reviews)
             }
         }
     }
 }
 
+//STRANICA ZA DODAVANJE REVIEW-A
+
+@Composable
+fun AddReviewScreen(onReviewAdded: (Review) -> Unit, navigation: NavController,  stadiumId: Int) {
+    var userName by remember { mutableStateOf("") }
+    var reviewText by remember { mutableStateOf("") }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.linearGradient(colors = listOf(white, LightBlue200)))
+    ) {
+        Text(text = "Add a Review", style = TextStyle(fontSize = 24.sp,color = Indigo900, fontWeight = FontWeight.Bold))
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Unos korisničkog imena
+        TextField(
+            value = userName,
+            onValueChange = { userName = it },
+            label = { Text(text = "Your Name") },
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .background(LightBlue500),
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Unos recenzije
+        TextField(
+            value = reviewText,
+            onValueChange = { reviewText = it },
+            label = { Text(text = "Your Review") },
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .background(LightBlue500),
+            maxLines = 5
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Spremi gumb
+        Button(
+            onClick = {
+                if (userName.isNotEmpty() && reviewText.isNotEmpty()) {
+                    val newReview = Review(userName, reviewText)
+                    onReviewAdded(newReview) // Dodaj recenziju u listu
+                    navigation.popBackStack() // Vraća nas na prethodnu stranicu
+                } else {
+                    // Možda želiš dodati nekakvu poruku ili validaciju
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Indigo900)
+        ) {
+            Text("Submit Review", color = Color.White)
+        }
+    }
+}
 
 
 
