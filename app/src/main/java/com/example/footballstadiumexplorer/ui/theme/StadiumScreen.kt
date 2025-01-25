@@ -1,6 +1,12 @@
 package com.example.footballstadiumexplorer.ui.theme
 
-import android.graphics.Paint.Align
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -25,10 +31,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
-import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -36,7 +43,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,23 +54,22 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.modifier.modifierLocalMapOf
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import com.example.footballstadiumexplorer.R
 import com.example.footballstadiumexplorer.Routes
-import com.example.footballstadiumexplorer.Routes.getAddReviewPath
 
 
 @Composable
@@ -77,9 +82,9 @@ fun FootballStadiumScreen(navigation: NavController) {
     }
 
     val filteredStadiums = when (currentActiveButton) {
-        0 -> filteredByName // All - Prikazuje sve stadione
-        1 -> filteredByName.filter { it.location.any { location -> location.state == "Spain" } } // Španjolska
-        2 -> filteredByName.filter { it.location.any { location -> location.state == "Germany" } } // Njemačka
+        0 -> filteredByName
+        1 -> filteredByName.filter { it.location.any { location -> location.state == "Spain" } }
+        2 -> filteredByName.filter { it.location.any { location -> location.state == "Germany" } }
         else -> filteredByName
     }
 
@@ -122,7 +127,7 @@ fun FootballStadiumScreen(navigation: NavController) {
             }
         }
 
-        IconButtonSpecifier()
+        IconButtonSpecifier(navController = navigation)
     }
 }
 
@@ -323,11 +328,12 @@ fun IconButton(
 }
 
 @Composable
-fun IconButtonSpecifier() {
+fun IconButtonSpecifier(navController: NavController) {
     var currentActiveButton by remember { mutableStateOf(0) }
 
     IconButton(iconResource =R.drawable.ic_plus, text = "Add new stadium", isActive = currentActiveButton == 0) {
         currentActiveButton = 0
+        navController.navigate("AddStadium")
     }
 }
 
@@ -354,7 +360,7 @@ data class Review(
     var text: String = ""
 )
 
-val stadiums: List<Stadium> = listOf(
+val stadiums: MutableList<Stadium> = mutableListOf(
     Stadium(
         image = R.drawable.allianzarenabm,
         stadiumId = 1,
@@ -725,10 +731,6 @@ fun StadiumDetailsScreen(
     val stadium = stadiums[stadiumId]
     val scrollState = rememberLazyListState()
 
-    val onReviewAdded: (Review) -> Unit = { newReview ->
-        stadium.reviews.add(newReview) // Dodajte novu recenziju stadiona
-    }
-
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -833,33 +835,6 @@ fun FavoritesScreen(currentScreen: String, navigation: NavController) {
 }
 
 @Composable
-fun FavoriteStadiumsList(stadiums: List<Stadium>, navigation: NavController) {
-    val favoriteStadiums = stadiums.filter { it.isFavorited } // Filtriramo samo omiljene stadione
-
-    if (favoriteStadiums.isEmpty()) {
-        // Ako nema omiljenih stadiona
-        Text(
-            text = "No favorite stadiums yet.",
-            color = Color.White,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-        )
-    } else {
-        // Prikaz popisa omiljenih stadiona
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(favoriteStadiums) { stadium ->
-                FavoriteStadiumItem(stadium = stadium, navigation = navigation)
-            }
-        }
-    }
-}
-
-@Composable
 fun FavoriteStadiumItem(stadium: Stadium, navigation: NavController) {
     Box(
         modifier = Modifier
@@ -925,46 +900,10 @@ fun FavoritesScreenTitle(
 }
 
 
-@Composable
-fun FavoritesDetailsScreen(
-    navigation: NavController,
-    stadiumId: Int
-) {
-    val stadium = stadiums[stadiumId]
-    val scrollState = rememberLazyListState()
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        LazyColumn(
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.Start,
-            state = scrollState,
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.linearGradient(colors = listOf(LightBlue100, white),
-                    start= Offset.Zero,
-                    end = Offset(0f, Float.POSITIVE_INFINITY)))
-        ) {
-            item {
-                TopImageAndBar(
-                    coverImage = stadium.image,
-                    navigation = navigation,
-                    stadium = stadium
-                )
-                ScreenInfo(stadium.image, stadium.name, stadium.location)
-                BasicInfo(stadium)
-                Description(stadium)
-                NewReviewButton(navigation, stadiumId)
-                Reviews(stadium.reviews)
-            }
-        }
-    }
-}
-
 //STRANICA ZA DODAVANJE REVIEW-A
 
 @Composable
-fun AddReviewScreen(onReviewAdded: (Review) -> Unit, navigation: NavController,  stadiumId: Int) {
+fun AddReviewScreen(onReviewAdded: (Review) -> Unit, navigation: NavController) {
     var userName by remember { mutableStateOf("") }
     var reviewText by remember { mutableStateOf("") }
 
@@ -1024,5 +963,182 @@ fun AddReviewScreen(onReviewAdded: (Review) -> Unit, navigation: NavController, 
     }
 }
 
+// STRANICA ZA DODAVANJE STADIONA
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddNewStadiumScreen(navigation: NavController, onStadiumAdded: (Stadium) -> Unit){
+
+    var name by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("") }
+    var state by remember { mutableStateOf("") }
+    var capacity by remember { mutableStateOf("") }
+    var year by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var isFavorited by remember { mutableStateOf(false) }
+    var isVisited by remember { mutableStateOf(false) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+
+
+    val textFieldColors = TextFieldDefaults.textFieldColors(
+        containerColor = Color.LightGray, // Pozadina polja
+        focusedIndicatorColor = Indigo900, // Linija kad je fokusirano
+        unfocusedIndicatorColor = LightBlue800, // Linija kad nije fokusirano
+        unfocusedTextColor = Color.Black, // Boja teksta
+        focusedTextColor = Grey800, //tekst koji pisem
+        unfocusedLabelColor = Indigo900,  //Search prije klika
+        focusedLabelColor = Indigo900, //Search dok pisem pretrazivanje
+        cursorColor = Indigo900 // Boja kursora
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.linearGradient(colors = listOf(white, LightBlue200)))
+    ){
+        Text(text = "Add new stadium", style = TextStyle(
+            fontSize = 24.sp,
+            color = Indigo900,
+            fontWeight = FontWeight.Bold)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Box(
+            modifier = Modifier
+                .size(150.dp)
+                .background(Color.LightGray, shape = RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (selectedImageUri == null) {
+                Icon(
+                    painter = painterResource(id = R.drawable.addimage), // Placeholder ikona
+                    contentDescription = "Add Image",
+                    tint = LightBlue800,
+                    modifier = Modifier.size(64.dp)
+                )
+            } else {
+                Image(
+                    bitmap = bitmap!!.asImageBitmap(),
+                    contentDescription = "Selected Image",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Stadium name")},
+            colors = textFieldColors,
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextField(
+            value = city,
+            onValueChange = { city = it },
+            label = { Text("City")},
+            colors = textFieldColors,
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextField(
+            value = state,
+            onValueChange = { state = it },
+            label = { Text("State")},
+            colors = textFieldColors,
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextField(
+            value = capacity,
+            onValueChange = { capacity = it },
+            label = { Text("Capacity")},
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = textFieldColors,
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextField(
+            value = year,
+            onValueChange = { year = it },
+            label = { Text("Year Built") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            colors = textFieldColors,
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        TextField(
+            value = description,
+            onValueChange = { description = it },
+            label = { Text("Description") },
+            colors = textFieldColors,
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Row(
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Favorited")
+            Checkbox(checked = isFavorited, onCheckedChange = { isFavorited = it })
+
+            Text("Visited")
+            Checkbox(checked = isVisited, onCheckedChange = { isVisited = it })
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+
+        Button(
+            onClick = {
+                if (name.isNotEmpty() && city.isNotEmpty() && capacity.isNotEmpty() && year.isNotEmpty()) {
+                    val newStadium = Stadium(
+                        stadiumId = stadiums.size,
+                        name = name,
+                        location = listOf(Location(city, state)),
+                        capacity = capacity.toIntOrNull() ?: 0,
+                        year = year.toIntOrNull() ?: 0,
+                        description = description,
+                        isFavorited = isFavorited,
+                        isVisited = isVisited
+                    )
+                    onStadiumAdded(newStadium) // Dodaj novi stadion
+                    navigation.popBackStack() // Vrati se na prethodnu stranicu
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Indigo900)
+        ) {
+            Text(text = "Add stadium", color = Color.White)
+        }
+    }
+}
 
 
