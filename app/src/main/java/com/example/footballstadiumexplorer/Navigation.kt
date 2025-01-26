@@ -1,22 +1,17 @@
 package com.example.footballstadiumexplorer
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.dimensionResource
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.example.footballstadiumexplorer.ui.theme.FootballStadiumScreen
 import com.example.footballstadiumexplorer.ui.theme.StadiumDetailsScreen
 import androidx.navigation.NavType
-import androidx.navigation.NavArgument
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.footballstadiumexplorer.ui.theme.AddNewStadiumScreen
+import com.example.footballstadiumexplorer.data.StadiumViewModel
 import com.example.footballstadiumexplorer.ui.theme.AddReviewScreen
+import com.example.footballstadiumexplorer.ui.theme.AddStadiumScreen
 import com.example.footballstadiumexplorer.ui.theme.FavoritesScreen
-import com.example.footballstadiumexplorer.ui.theme.Review
-import com.example.footballstadiumexplorer.ui.theme.stadiums
 
 
 object Routes {
@@ -40,12 +35,16 @@ object Routes {
     }
 }
 @Composable
-fun NavigationController(navController: NavHostController) {
+fun NavigationController(viewModel: StadiumViewModel) {
+    val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination =
-    Routes.SCREEN_ALL_STADIUMS) {
+    val stadiums = viewModel.stadiums
+
+    NavHost(navController = navController,
+        startDestination = Routes.SCREEN_ALL_STADIUMS
+    ) {
         composable(Routes.SCREEN_ALL_STADIUMS) {
-            FootballStadiumScreen(navigation = navController)
+            FootballStadiumScreen(navigation = navController, viewModel = viewModel)
         }
         composable(
             Routes.SCREEN_STADIUM_DETAILS,
@@ -56,10 +55,10 @@ fun NavigationController(navController: NavHostController) {
             )
         ) {backStackEntry ->
             val stadiumId = backStackEntry.arguments?.getInt("stadiumId") ?: 0
-            StadiumDetailsScreen(navigation = navController, stadiumId = stadiumId)
+            StadiumDetailsScreen(navigation = navController, stadiumId = stadiumId, viewModel = viewModel)
         }
         composable(Routes.FAVORITE_STADIUMS_SCREEN) {
-            FavoritesScreen("FavoritesScreen",navigation = navController)
+            FavoritesScreen("FavoritesScreen",navigation = navController, imageResource = String.toString(), viewModel)
         }
 
         composable(
@@ -72,16 +71,14 @@ fun NavigationController(navController: NavHostController) {
                     navigation = navController,
                     onReviewAdded ={ review ->
                         // Dodaj recenziju za stadion
-                        stadiums[stadiumId].reviews.add(review)
+                        val stadium = viewModel.getStadiumById(stadiumId)
+                        stadium?.reviews?.add(review)
                     }
                 )
         }
 
         composable(Routes.ADD_STADIUM_SCREEN){
-            AddNewStadiumScreen(navigation = navController, onStadiumAdded = {
-                newStadium -> stadiums.add(newStadium)
-                navController.popBackStack()
-            })
+            AddStadiumScreen(navigation = navController, viewModel)
         }
     }
 }
