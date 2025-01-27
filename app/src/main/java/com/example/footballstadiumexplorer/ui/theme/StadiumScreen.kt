@@ -59,20 +59,20 @@ import com.example.footballstadiumexplorer.data.StadiumViewModel
 @Composable
 fun FootballStadiumScreen(navigation: NavController, viewModel: StadiumViewModel) {
     var searchInput by remember { mutableStateOf("") }
-    var currentActiveButton by remember { mutableStateOf(0) }
     var currentActiveCategory by remember { mutableStateOf(0) }
 
     val stadiums = viewModel.stadiums
 
-    val filteredByName = stadiums.filter {
-        it.name.contains(searchInput, ignoreCase = true )
+    val filteredStadiums = viewModel.stadiums.filter { stadium ->
+        val matchesName = stadium.name.contains(searchInput, ignoreCase = true)
+        val matchesCategory = when (currentActiveCategory) {
+            1 -> stadium.location.any { it.state == "Spain" }
+            2 -> stadium.location.any { it.state == "Germany" }
+        else -> true
+    }
+        matchesName && matchesCategory
     }
 
-    val filteredStadiums = when (currentActiveCategory) {
-        1 -> viewModel.filterStadiumsByState("Spain")
-        2 -> viewModel.filterStadiumsByState("Germany")
-        else -> viewModel.stadiums
-    }
 
     Column(
         verticalArrangement = Arrangement.Top,
@@ -83,7 +83,8 @@ fun FootballStadiumScreen(navigation: NavController, viewModel: StadiumViewModel
     ) {
         ScreenTitle(title = "Football Stadium Explorer", subtitle = "\"From dreams to destinations: explore iconic stadiums.\"")
         FavoritesButton(currentScreen="FootballScreen", navigation)
-        SearchBar(iconResource = R.drawable.ic_search,
+        SearchBar(
+            iconResource = R.drawable.ic_search,
             labelText = "Search by stadium name",
             onValueChange = { newInput -> searchInput = newInput })
         StadiumCategories(currentActiveButton = currentActiveCategory,
@@ -154,24 +155,23 @@ fun SearchBar(
     @DrawableRes iconResource: Int,
     labelText: String,
     colors: TextFieldColors = TextFieldDefaults.textFieldColors(
-        containerColor = Color.Transparent, //boja pozadine tog pravokutnika
-        unfocusedTextColor = Grey800, // tekst
-        focusedTextColor = Grey800, //tekst koji pisem
-        unfocusedLabelColor = Indigo900,  //Search prije klika
-        focusedLabelColor = Indigo900, //Search dok pisem pretrazivanje
-        focusedIndicatorColor = Color.Transparent, //linija ispod search, preklapa se s donjim borderom
-        unfocusedIndicatorColor = Color.Transparent, //isto ta linija
+        containerColor = Color.Transparent,
+        unfocusedTextColor = Grey800,
+        focusedTextColor = Grey800,
+        unfocusedLabelColor = Indigo900,
+        focusedLabelColor = Indigo900,
+        focusedIndicatorColor = Color.Transparent,
+        unfocusedIndicatorColor = Color.Transparent,
     ),
     onValueChange: (String) -> Unit
 ) {
-    var searchInput by remember {
-        mutableStateOf("")
-    }
+    var searchInput by remember { mutableStateOf("") }
+
     TextField(
         value = searchInput,
         onValueChange = {
             searchInput = it
-            onValueChange(it)  // Pozovi onValueChange kad se input promijeni
+            onValueChange(it)
         },
         label = {
             Text(labelText,
@@ -221,9 +221,9 @@ fun TabButton(
 @Composable
 fun FavoritesButton(currentScreen: String,
                     navigation: NavController){
-    var currentActiveButton by remember {
-        mutableStateOf(if(currentScreen == "FootballScreen") 0 else 1)
-    }
+
+    var currentActiveButton by remember { mutableStateOf(if(currentScreen == "FootballScreen") 0 else 1) }
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center,
@@ -235,7 +235,6 @@ fun FavoritesButton(currentScreen: String,
     ) {
         TabButton(text = "Explorer", isActive = currentActiveButton == 0
         ){
-
                 currentActiveButton = 0
         }
         Spacer(modifier = Modifier.width(6.dp))
@@ -315,7 +314,8 @@ fun IconButton(
 fun IconButtonSpecifier(navController: NavController) {
     var currentActiveButton by remember { mutableStateOf(0) }
 
-    IconButton(iconResource =R.drawable.ic_plus, text = "Add new stadium", isActive = currentActiveButton == 0) {
+    IconButton(iconResource =R.drawable.ic_plus, text = "Add new stadium", isActive = currentActiveButton == 0)
+    {
         currentActiveButton = 0
         navController.navigate("AddStadium")
     }
@@ -359,13 +359,13 @@ fun StadiumCard(
             .padding(top = 8.dp, bottom = 8.dp)
     ) {
         val painter = when (imageResource) {
-            is Int -> painterResource(id = imageResource) // Lokalni resurs
-            is String -> rememberAsyncImagePainter( // Mrežni URL
+            is Int -> painterResource(id = imageResource)
+            is String -> rememberAsyncImagePainter(
                 model = imageResource,
                 error = painterResource(R.drawable.addimage),
                 placeholder = painterResource(R.drawable.addimage)
             )
-            else -> painterResource(R.drawable.addimage) // Placeholder za nepoznati tip
+            else -> painterResource(R.drawable.addimage)
         }
         Image(
             painter = painter,
@@ -381,14 +381,13 @@ fun StadiumCard(
                 .padding(horizontal = 10.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.Bottom
         ) {
-            // Dodavanje prozirne pozadine za tekst
             Box(
                 modifier = Modifier
                     .background(
                         color = Color.Black.copy(alpha = 0.6f),
                         shape = RoundedCornerShape(4.dp)
                     )
-                    .padding(8.dp) // Unutarnji razmak unutar pozadine
+                    .padding(8.dp)
             ){
                 Column {
                     Text(title, color = Blue300, style = TextStyle(fontWeight = FontWeight.Bold))

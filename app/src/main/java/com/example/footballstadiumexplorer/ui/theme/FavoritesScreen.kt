@@ -44,17 +44,15 @@ import com.example.footballstadiumexplorer.data.StadiumViewModel
 
 
 @Composable
-fun FavoritesScreen(currentScreen: String, navigation: NavController, imageResource: String, viewModel: StadiumViewModel) {
-    var currentActiveButton by remember {
-        mutableStateOf(if(currentScreen == "FavoritesScreen") 1 else 0)
-    }
+fun FavoritesScreen(currentScreen: String, navigation: NavController, viewModel: StadiumViewModel) {
+
+    var currentActiveButton by remember { mutableStateOf(if(currentScreen == "FavoritesScreen") 1 else 0) }
 
     val stadiums = viewModel.stadiums
 
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Pozadina - slika
         Image(
             painter = painterResource(id = R.drawable.background1),
             contentDescription = "Background Image",
@@ -84,9 +82,7 @@ fun FavoritesScreen(currentScreen: String, navigation: NavController, imageResou
                 }
                 Spacer(modifier = Modifier.width(6.dp))
                 TabButton(text = "Favorites", isActive = currentActiveButton == 1){
-                    if(currentScreen != "FavoriteStadiums")
                         currentActiveButton = 1
-                    navigation.navigate(Routes.FAVORITE_STADIUMS_SCREEN)
                 }
             }
         }
@@ -94,7 +90,7 @@ fun FavoritesScreen(currentScreen: String, navigation: NavController, imageResou
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 50.dp), // Povećano za više prostora između gumba i naslova
+                .padding(top = 50.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             FavoritesScreenTitle(
@@ -102,7 +98,6 @@ fun FavoritesScreen(currentScreen: String, navigation: NavController, imageResou
             )
         }
 
-        // Ostali sadržaj ekrana, kao što je popis omiljenih stadiona
         LazyColumn(
             modifier = Modifier
                 .padding(16.dp)
@@ -122,38 +117,36 @@ fun FavoriteStadiumItem(stadium: Stadium, imageResource: Any) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp) // Visina pojedinačne stavke
+            .height(200.dp)
     ) {
         val painter = when (imageResource) {
-            is Int -> painterResource(id = imageResource) // Lokalni resurs
-            is String -> rememberAsyncImagePainter( // Mrežni URL
+            is Int -> painterResource(id = imageResource)
+            is String -> rememberAsyncImagePainter(
                 model = imageResource,
                 error = painterResource(R.drawable.addimage),
                 placeholder = painterResource(R.drawable.addimage)
             )
 
-            else -> painterResource(R.drawable.addimage) // Placeholder za nepoznati tip
+            else -> painterResource(R.drawable.addimage)
         }
-        // Pozadina: Slika stadiona
         Image(
             painter = painter,
             contentDescription = stadium.name,
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(8.dp)), // Zaobljeni rubovi
+                .clip(RoundedCornerShape(8.dp)),
             contentScale = ContentScale.Crop
         )
 
-        // Ime i lokacija na slici (dolje lijevo)
         Column(
             modifier = Modifier
-                .align(Alignment.BottomStart) // Pozicioniranje u donji lijevi kut
+                .align(Alignment.BottomStart)
                 .padding(10.dp)
                 .background(
-                    color = Color.Black.copy(alpha = 0.6f), // Poluprozirna pozadina
+                    color = Color.Black.copy(alpha = 0.6f),
                     shape = RoundedCornerShape(4.dp)
                 )
-                .padding(8.dp) // Unutarnji razmak unutar pozadine
+                .padding(8.dp)
         ) {
             Text(
                 text = stadium.name,

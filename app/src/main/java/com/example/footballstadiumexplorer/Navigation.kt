@@ -26,13 +26,6 @@ object Routes {
         }
         return "stadiumDetails/0"
     }
-
-    fun getAddReviewPath(stadiumId: Int): String {
-        if(stadiumId != null && stadiumId != -1) {
-            return "AddReview/$stadiumId" // Generiranje URL-a za stranicu za unos recenzije
-        }
-        return "stadiumDetails/0"
-    }
 }
 @Composable
 fun NavigationController(viewModel: StadiumViewModel) {
@@ -53,12 +46,16 @@ fun NavigationController(viewModel: StadiumViewModel) {
                     type = NavType.IntType
                 }
             )
-        ) {backStackEntry ->
-            val stadiumId = backStackEntry.arguments?.getInt("stadiumId") ?: 0
-            StadiumDetailsScreen(navigation = navController, stadiumId = stadiumId, viewModel = viewModel)
+        ) {backStackEntry -> backStackEntry.arguments?.getInt("stadiumId")?.let {
+                StadiumDetailsScreen(
+                    navigation = navController,
+                    stadiumId = it,
+                    viewModel = viewModel
+                )
+            }
         }
         composable(Routes.FAVORITE_STADIUMS_SCREEN) {
-            FavoritesScreen("FavoritesScreen",navigation = navController, imageResource = String.toString(), viewModel)
+            FavoritesScreen("FavoritesScreen",navigation = navController, viewModel = viewModel)
         }
 
         composable(
@@ -68,17 +65,14 @@ fun NavigationController(viewModel: StadiumViewModel) {
         { backStackEntry ->
             val stadiumId = backStackEntry.arguments?.getInt("stadiumId") ?: 0
                 AddReviewScreen(
-                    navigation = navController,
-                    onReviewAdded ={ review ->
-                        // Dodaj recenziju za stadion
-                        val stadium = viewModel.getStadiumById(stadiumId)
-                        stadium?.reviews?.add(review)
-                    }
+                    stadiumId = stadiumId,
+                    viewModel = viewModel,
+                    navigation = navController
                 )
         }
 
         composable(Routes.ADD_STADIUM_SCREEN){
-            AddStadiumScreen(navigation = navController, viewModel)
+            AddStadiumScreen(navigation = navController, viewModel = viewModel)
         }
     }
 }

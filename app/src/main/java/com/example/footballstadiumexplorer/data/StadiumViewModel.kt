@@ -122,10 +122,23 @@ class StadiumViewModel : ViewModel(){
         }
     }
 
+    fun searchStadiums(query: String): List<Stadium> {
+        return if (query.isBlank()) {
+            stadiums
+        } else {
+            stadiums.filter { it.name.contains(query, ignoreCase = true) }
+        }
+    }
+
+    fun addReviewToStadium(stadiumId: Int, review: Review) {
+        val stadium = stadiumsData.find { it.stadiumId == stadiumId }
+        stadium?.reviews?.add(review)
+    }
 
     // Dodavanje novog stadiona
     fun addStadium(stadium: Stadium) {
-        stadiumsData.add(stadium)
+        val newId = (stadiumsData.maxOfOrNull { it.stadiumId } ?: 0) + 1
+        stadiumsData.add(stadium.copy(stadiumId = newId))
     }
 
     // Dohvaćanje stadiona po ID-u

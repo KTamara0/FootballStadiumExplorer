@@ -22,7 +22,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -152,7 +151,8 @@ fun TopImageAndBar(
             ) {
                 CircularButton(
                     R.drawable.ic_arrow_back,
-                    onClick = { navigation.navigate(Routes.SCREEN_ALL_STADIUMS) })
+                    onClick = { navigation.navigate(Routes.SCREEN_ALL_STADIUMS) }
+                )
                 CircularButton(
                     iconResource = if(isVisited) R.drawable.visited else R.drawable.visited,
                     color = if (stadium.isVisited) LightBlue500 else Color.LightGray,
@@ -163,7 +163,8 @@ fun TopImageAndBar(
                     iconResource = if(isFavorited) R.drawable.love else R.drawable.love,
                     color = if (stadium.isFavorited) Red else Color.LightGray,
                     onClick = { isFavorited = !isFavorited
-                        stadium.isFavorited = isFavorited })
+                        stadium.isFavorited = isFavorited }
+                )
             }
         }
     }
@@ -179,13 +180,13 @@ fun ScreenInfo(
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)
     ) {
         val painter = when (imageResource) {
-            is Int -> painterResource(id = imageResource) // Lokalni resurs
-            is String -> rememberAsyncImagePainter( // Mrežni URL
+            is Int -> painterResource(id = imageResource)
+            is String -> rememberAsyncImagePainter(
                 model = imageResource,
                 error = painterResource(R.drawable.addimage),
                 placeholder = painterResource(R.drawable.addimage)
             )
-            else -> painterResource(R.drawable.addimage) // Placeholder za nepoznati tip
+            else -> painterResource(R.drawable.addimage)
         }
         Image(
             painter = painter,
@@ -282,9 +283,8 @@ fun Reviews(reviews: List<Review>) {
                 reviews.forEach { review ->
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(vertical = 4.dp) // Razmak između recenzija
+                        modifier = Modifier.padding(vertical = 4.dp)
                     ) {
-                        // Korisničko ime (bold, crna boja)
                         Text(
                             text = "${review.user}: ",
                             style = TextStyle(
@@ -292,7 +292,6 @@ fun Reviews(reviews: List<Review>) {
                                 color = Color.Black
                             )
                         )
-                        // Tekst recenzije (siva boja)
                         Text(
                             text = review.text,
                             style = TextStyle(color = Color.DarkGray)
