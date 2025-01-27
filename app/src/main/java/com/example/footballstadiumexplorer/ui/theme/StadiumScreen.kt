@@ -61,8 +61,6 @@ fun FootballStadiumScreen(navigation: NavController, viewModel: StadiumViewModel
     var searchInput by remember { mutableStateOf("") }
     var currentActiveCategory by remember { mutableStateOf(0) }
 
-    val stadiums = viewModel.stadiums
-
     val filteredStadiums = viewModel.stadiums.filter { stadium ->
         val matchesName = stadium.name.contains(searchInput, ignoreCase = true)
         val matchesCategory = when (currentActiveCategory) {

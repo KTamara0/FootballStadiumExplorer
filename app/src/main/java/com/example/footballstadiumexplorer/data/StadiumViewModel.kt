@@ -116,20 +116,6 @@ class StadiumViewModel : ViewModel(){
         )
     }
 
-    fun filterStadiumsByState(state: String): List<Stadium> {
-        return stadiumsData.filter { stadium ->
-            stadium.location.any { it.state == state }
-        }
-    }
-
-    fun searchStadiums(query: String): List<Stadium> {
-        return if (query.isBlank()) {
-            stadiums
-        } else {
-            stadiums.filter { it.name.contains(query, ignoreCase = true) }
-        }
-    }
-
     fun addReviewToStadium(stadiumId: Int, review: Review) {
         val stadium = stadiumsData.find { it.stadiumId == stadiumId }
         stadium?.reviews?.add(review)
